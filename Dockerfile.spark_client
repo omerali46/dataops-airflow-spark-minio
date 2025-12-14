@@ -1,0 +1,20 @@
+FROM rockylinux:9
+
+RUN dnf -y update && \
+    dnf -y install python3 python3-pip openssh-server openssh-clients git && \
+    dnf clean all
+
+RUN pip3 install --no-cache-dir pandas boto3 sqlalchemy psycopg2-binary
+
+RUN ssh-keygen -A && mkdir -p /var/run/sshd
+
+ARG USERNAME=de
+RUN useradd -m ${USERNAME} && echo "${USERNAME}:de123" | chpasswd
+
+RUN sed -i 's/^#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config || true
+RUN sed -i 's/^PasswordAuthentication no/PasswordAuthentication yes/' /etc/ssh/sshd_config || true
+RUN echo "PermitRootLogin no" >> /etc/ssh/sshd_config
+
+EXPOSE 22
+CMD ["/usr/sbin/sshd","-D"]
+
