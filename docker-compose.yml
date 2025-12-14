@@ -5,7 +5,7 @@ services:
       POSTGRES_PASSWORD: ${PG_PASSWORD}
       POSTGRES_USER: ${PG_USER}
     ports:
-      - "15432:5432"
+      - "15432:5432"   # Rocky'deki local Postgres 5432 kullandığı için
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./sql/init_traindb.sql:/docker-entrypoint-initdb.d/init_traindb.sql:ro
@@ -36,12 +36,14 @@ services:
   git-sync:
     image: registry.k8s.io/git-sync/git-sync:v4.5.0
     environment:
-      GIT_SYNC_REPO: ${GIT_REPO}
-      GIT_SYNC_BRANCH: ${GIT_BRANCH}
-      GIT_SYNC_ROOT: /git
-      GIT_SYNC_DEST: repo
-      GIT_SYNC_PERIOD: ${GIT_SYNC_PERIOD}
-      GIT_SYNC_ONE_TIME: "false"
+      # v4.5.0+ yeni env isimleri
+      GITSYNC_REPO: ${GIT_REPO}
+      GITSYNC_REF: ${GIT_BRANCH}
+      GITSYNC_ROOT: /git
+      GITSYNC_LINK: repo
+      GITSYNC_PERIOD: ${GIT_SYNC_PERIOD}
+      GITSYNC_ONE_TIME: "false"
+      # public repo ise auth gerekmez
     volumes:
       - gitvolume:/git
 
@@ -78,6 +80,9 @@ services:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${PG_USER}:${PG_PASSWORD}@postgres:5432/postgres
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+      # DAG folder'ı direkt git-sync'ten oku (symlink yok)
+      AIRFLOW__CORE__DAGS_FOLDER: /git/repo/dags
+      # SSHOperator connection
       AIRFLOW_CONN_SPARK_SSH: ssh://${SPARK_SSH_USER}:${SPARK_SSH_PASSWORD}@spark_client:22
     volumes:
       - gitvolume:/git
@@ -89,7 +94,6 @@ services:
       pip install apache-airflow-providers-ssh psycopg2-binary &&
       airflow db migrate &&
       airflow users create --username admin --password admin --firstname a --lastname a --role Admin --email a@a.com || true &&
-      ln -sf /git/repo/dags /opt/airflow/dags &&
       airflow standalone
       "
 
@@ -98,4 +102,3 @@ volumes:
   miniodata:
   gitvolume:
   airflow_logs:
-
