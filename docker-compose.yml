@@ -93,7 +93,6 @@ services:
       bash -c "
       pip install apache-airflow-providers-ssh psycopg2-binary &&
       airflow db migrate &&
-      airflow users create --username admin --password admin --firstname a --lastname a --role Admin --email a@a.com || true &&
       airflow standalone
       "
 
